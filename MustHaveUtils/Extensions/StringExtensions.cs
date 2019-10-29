@@ -33,13 +33,13 @@ namespace MustHaveUtils.Extensions
                             ;
 
                         SwapIter(ref i, ref i2);
-                        ReverseIter(ref i1, ref last);
+                        ReverseIter(i1, last);
 
                         return true;
                     }
                     if (i == first)
                     {
-                        ReverseIter(ref first, ref last);
+                        ReverseIter(first, last);
 
                         return false;
                     }
@@ -64,14 +64,14 @@ namespace MustHaveUtils.Extensions
             *second = buffer;
         }
 
-        private static unsafe void ReverseIter(ref char* first, ref char* last)
+        private static unsafe void ReverseIter(char* first, char* last)
         {
             long idx = (last - first + 1) / 2;
 
             while (idx != 0)
             {
                 SwapIter(ref first, ref last);
-                first--;
+                first++;
                 last--;
                 idx--;
             }
