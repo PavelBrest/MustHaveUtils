@@ -69,12 +69,23 @@ namespace MustHaveUtils
         public static explicit operator Optional<TValue>(TValue value)
             => new Optional<TValue>(value);
 
+        public static bool operator ==(Optional<TValue> first, Optional<TValue> second) 
+            => first.Equals(second);
+
+        public static bool operator !=(Optional<TValue> first, Optional<TValue> second) 
+            => first.Equals(second);
+
         public override bool Equals(object obj)
         {
             if (obj is Optional<TValue>)
                 return Equals(obj);
             else
                 return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
 
         public bool Equals(Optional<TValue> other)

@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace MustHaveUtils.Result.Pipeline
+namespace MustHaveUtils.Results.Pipeline
 {
 
-    public class ResultPipelineBuilder
+    public sealed class ResultPipelineBuilder
     {
-        private List<Func<Result>> _funcList;
-        private Dictionary<Func<Result>, Action<string>> _failedDictionary;
-        private Dictionary<Func<Result>, Func<Result>> _failedContinueDictionary;
+        private readonly List<Func<Result>> _funcList;
+        private readonly Dictionary<Func<Result>, Action<string>> _failedDictionary;
+        private readonly Dictionary<Func<Result>, Func<Result>> _failedContinueDictionary;
 
 
         public ResultPipelineBuilder()
@@ -18,6 +20,11 @@ namespace MustHaveUtils.Result.Pipeline
             _failedDictionary = new Dictionary<Func<Result>, Action<string>>();
             _failedContinueDictionary = new Dictionary<Func<Result>, Func<Result>>();
         }
+
+        private bool CanAddToPipeline 
+            => !_funcList.Any() || 
+            _failedContinueDictionary.ContainsKey(_funcList.Last()) || 
+            _failedDictionary.ContainsKey(_funcList.Last());
 
         public ResultPipelineBuilder ContinueWith(Func<Result> func)
         {
@@ -34,9 +41,7 @@ namespace MustHaveUtils.Result.Pipeline
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
-            if (!_funcList.Any() || 
-                _failedContinueDictionary.ContainsKey(_funcList.Last()) ||
-                _failedDictionary.ContainsKey(_funcList.Last()))
+            if (!CanAddToPipeline)
                 throw new InvalidOperationException();
 
             _failedContinueDictionary.Add(_funcList.Last(), func);
@@ -49,11 +54,8 @@ namespace MustHaveUtils.Result.Pipeline
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
-            if (!_funcList.Any() ||
-                _failedContinueDictionary.ContainsKey(_funcList.Last()) ||
-                _failedDictionary.ContainsKey(_funcList.Last()))
+            if (!CanAddToPipeline)
                 throw new InvalidOperationException();
-
 
             _failedDictionary.Add(_funcList.Last(), action);
 
@@ -63,9 +65,7 @@ namespace MustHaveUtils.Result.Pipeline
         public ResultPipelineBuilder ThrowOnFailed<TException>()
             where TException : Exception, new()
         {
-            if (!_funcList.Any() ||
-                _failedContinueDictionary.ContainsKey(_funcList.Last()) ||
-                _failedDictionary.ContainsKey(_funcList.Last()))
+            if (!CanAddToPipeline)
                 throw new InvalidOperationException();
 
             _failedDictionary.Add(_funcList.Last(), p => throw new TException());
@@ -115,5 +115,50 @@ namespace MustHaveUtils.Result.Pipeline
             return valueRes;
         }
 
+        public async Task<Result> ExecuteAsync(CancellationToken token = default)
+        {
+            Result lastResult = Result.Failed(string.Empty);
+
+            foreach (var func in _funcList)
+            {
+                lastResult = await Task.Factory.StartNew(func, token).ConfigureAwait(false);
+
+                if (lastResult.IsFailed)
+                {
+                    if (_failedDictionary.TryGetValue(func, out var action))
+                    {
+                        action.Invoke(lastResult.Message);
+                        return lastResult;
+                    }
+                    else if (_failedContinueDictionary.TryGetValue(func, out var function))
+                    {
+                        var result = function.Invoke();
+                        if (result.IsFailed)
+                            return result;
+                    }
+                    else
+                        return lastResult;
+                }
+            }
+
+            return lastResult;
+        }
+
+        public Task<Result<TValue>> ExecuteAsync<TValue>(CancellationToken token = default)
+        {
+            return ExecuteAsync(token)
+                .ContinueWith(task =>
+                {
+                    var result = task.Result;
+
+                    if (result.IsFailed)
+                        return Result.Failed<TValue>(result.Message, default);
+
+                    if (!(result is Result<TValue> valueRes))
+                        throw new InvalidOperationException();
+
+                    return valueRes;
+                });
+        }
     }
 }

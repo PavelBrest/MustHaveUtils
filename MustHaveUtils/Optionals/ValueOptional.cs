@@ -2,11 +2,9 @@
 
 namespace MustHaveUtils
 {
-    public struct ValueOptional<TValue>
+    public ref struct ValueOptional<TValue>
         where TValue : struct
     {
-        private static readonly ValueOptional<TValue> _empty = new ValueOptional<TValue>();
-
         private readonly TValue _value;
 
         public delegate void ValueIfPresentDelegate<T>(in T value)
@@ -59,7 +57,7 @@ namespace MustHaveUtils
             => HasValue ? _value : value;
 
         public static ValueOptional<TValue> Empty()
-            => _empty;
+            => new ValueOptional<TValue>();
 
         public static ValueOptional<TValue> Of(in TValue value)
             => new ValueOptional<TValue>(value);

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace MustHaveUtils.Result
+﻿namespace MustHaveUtils
 {
     public class Result
     {
