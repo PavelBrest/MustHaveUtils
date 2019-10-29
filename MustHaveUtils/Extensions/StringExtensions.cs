@@ -1,19 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace MustHaveUtils.Extensions
 {
     public static class StringExtensions
     {
-        public unsafe static bool NextPermutation(this string str)
+        public unsafe static bool NextPermutation(this string str, int start, int end)
         {
-            var length = str.Length;
+            if (start > str.Length || end < start)
+                throw new InvalidOperationException();
+
+            if (string.IsNullOrEmpty(str))
+                return false;
 
             fixed (char* ptr = str)
             {
-                char* first = &ptr[0];
-                char* last = &ptr[length - 1];
+                char* first = &ptr[start];
+                char* last = &ptr[end];
 
                 if (first == last) return false;
 
@@ -43,6 +45,16 @@ namespace MustHaveUtils.Extensions
                     }
                 }
             }
+        }
+
+        public unsafe static bool NextPermutation(this string str, int start)
+        {
+            return NextPermutation(str, start, str.Length - 1);
+        }
+
+        public unsafe static bool NextPermutation(this string str)
+        {
+            return NextPermutation(str, 0, str.Length - 1);
         }
 
         private static unsafe void SwapIter(ref char* first, ref char* second)
