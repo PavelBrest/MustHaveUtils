@@ -2,8 +2,6 @@
 {
     public class Result
     {
-        protected bool _isFinished;
-
         public bool IsFailed { get; }
         public string Message { get; }
 

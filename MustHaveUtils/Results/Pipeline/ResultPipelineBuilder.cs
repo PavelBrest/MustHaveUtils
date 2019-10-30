@@ -9,20 +9,20 @@ namespace MustHaveUtils.Results.Pipeline
 
     public sealed class ResultPipelineBuilder
     {
-        private readonly List<Func<Result>> _funcList;
+        private readonly LinkedList<Func<Result>> _funcList;
         private readonly Dictionary<Func<Result>, Action<string>> _failedDictionary;
         private readonly Dictionary<Func<Result>, Func<Result>> _failedContinueDictionary;
 
 
         public ResultPipelineBuilder()
         {
-            _funcList = new List<Func<Result>>();
+            _funcList = new LinkedList<Func<Result>>();
             _failedDictionary = new Dictionary<Func<Result>, Action<string>>();
             _failedContinueDictionary = new Dictionary<Func<Result>, Func<Result>>();
         }
 
         private bool CanAddToPipeline 
-            => !_funcList.Any() || 
+            => _funcList.Any() || 
             _failedContinueDictionary.ContainsKey(_funcList.Last()) || 
             _failedDictionary.ContainsKey(_funcList.Last());
 
@@ -31,7 +31,7 @@ namespace MustHaveUtils.Results.Pipeline
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
-            _funcList.Add(func);
+            _funcList.AddLast(func);
 
             return this;
         }
@@ -68,38 +68,31 @@ namespace MustHaveUtils.Results.Pipeline
             if (!CanAddToPipeline)
                 throw new InvalidOperationException();
 
-            _failedDictionary.Add(_funcList.Last(), p => throw new TException());
+            _failedDictionary.Add(_funcList.Last(), _ => throw new TException());
 
             return this;
         }
 
         public Result Execute()
         {
-            Result lastResult = Result.Failed(string.Empty);
+            Result result = Result.Failed(string.Empty);
 
             foreach(var func in _funcList)
             {
-                lastResult = func.Invoke();
+                result = func.Invoke();
 
-                if (lastResult.IsFailed)
-                {
-                    if (_failedDictionary.TryGetValue(func, out var action))
-                    {
-                        action.Invoke(lastResult.Message);
-                        return lastResult;
-                    }
-                    else if (_failedContinueDictionary.TryGetValue(func, out var function))
-                    {
-                        var result = function.Invoke();
-                        if (result.IsFailed)
-                            return result;
-                    }
-                    else
-                        return lastResult;
-                }
+                if (!result.IsFailed)
+                    continue;
+
+                if (_failedDictionary.TryGetValue(func, out var action))
+                    action.Invoke(result.Message);
+                else if (_failedContinueDictionary.TryGetValue(func, out var function))
+                    result = function.Invoke();
+
+                return result;
             }
 
-            return lastResult;
+            return result;
         }
 
         public Result<TValue> Execute<TValue>()
@@ -115,50 +108,15 @@ namespace MustHaveUtils.Results.Pipeline
             return valueRes;
         }
 
-        public async Task<Result> ExecuteAsync(CancellationToken token = default)
+        public Task<Result> ExecuteAsync(CancellationToken token = default)
         {
-            Result lastResult = Result.Failed(string.Empty);
+            return Task.Factory.StartNew(Execute, token, TaskCreationOptions.None, TaskScheduler.Default);
 
-            foreach (var func in _funcList)
-            {
-                lastResult = await Task.Factory.StartNew(func, token).ConfigureAwait(false);
-
-                if (lastResult.IsFailed)
-                {
-                    if (_failedDictionary.TryGetValue(func, out var action))
-                    {
-                        action.Invoke(lastResult.Message);
-                        return lastResult;
-                    }
-                    else if (_failedContinueDictionary.TryGetValue(func, out var function))
-                    {
-                        var result = function.Invoke();
-                        if (result.IsFailed)
-                            return result;
-                    }
-                    else
-                        return lastResult;
-                }
-            }
-
-            return lastResult;
         }
 
         public Task<Result<TValue>> ExecuteAsync<TValue>(CancellationToken token = default)
         {
-            return ExecuteAsync(token)
-                .ContinueWith(task =>
-                {
-                    var result = task.Result;
-
-                    if (result.IsFailed)
-                        return Result.Failed<TValue>(result.Message, default);
-
-                    if (!(result is Result<TValue> valueRes))
-                        throw new InvalidOperationException();
-
-                    return valueRes;
-                });
+            return Task.Factory.StartNew(Execute<TValue>, token, TaskCreationOptions.None, TaskScheduler.Default);
         }
     }
 }
