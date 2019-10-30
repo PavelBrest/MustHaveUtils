@@ -2,12 +2,20 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace MustHaveUtils.Extensions
+namespace MustHaveUtils.Extensions.String
 {
     public static class StringExtensions
     {
+        /// <summary>
+        /// Performs a left rotation on a range of elements
+        /// </summary>
+        /// <param name="str">String for rotate.</param>
+        /// <param name="from">The element's index that should appear at the beginning of the rotated range</param>
         public unsafe static void Rotate(this string str, int from)
         {
+            if (string.IsNullOrEmpty(str))
+                throw new NullReferenceException();
+
             fixed (char* ptr = str)
             {
                 char* first = &ptr[0];
@@ -17,13 +25,14 @@ namespace MustHaveUtils.Extensions
             }
         }
 
+
         public unsafe static bool PrevPermutation(this string str, int start, int end)
         {
-            if (start > str.Length || end < start)
-                throw new InvalidOperationException();
-
             if (string.IsNullOrEmpty(str))
                 return false;
+
+            if (start > str.Length || end < start)
+                throw new InvalidOperationException();
 
             fixed (char* ptr = str)
             {
@@ -59,21 +68,38 @@ namespace MustHaveUtils.Extensions
 
         public static bool PrevPermutation(this string str, int start)
         {
+            if (string.IsNullOrEmpty(str))
+                return false;
+
             return PrevPermutation(str, start, str.Length - 1);
         }
 
         public static bool PrevPermutation(this string str)
         {
+            if (string.IsNullOrEmpty(str))
+                return false;
+
             return PrevPermutation(str, 0, str.Length - 1);
         }
 
+        /// <summary>
+        /// Transforms the string into the next permutation from the set of all permutations that are lexicographically ordered with respect to operator or comp. 
+        /// Returns true if such permutation exists, otherwise transforms the range into the first permutation and returns false.
+        /// </summary>
+        /// <param name="str">String to permutate</param>
+        /// <param name="start">Start element's index to permute</param>
+        /// <param name="end">Last element's index to permute</param>
+        /// <returns>
+        /// true if the new permutation is lexicographically greater than the old. 
+        /// false if the last permutation was reached and the range was reset to the first permutation.
+        /// </returns>
         public unsafe static bool NextPermutation(this string str, int start, int end)
         {
-            if (start > str.Length || end < start)
-                throw new InvalidOperationException();
-
             if (string.IsNullOrEmpty(str))
                 return false;
+
+            if (start > str.Length || end < start)
+                throw new InvalidOperationException();
 
             fixed (char* ptr = str)
             {
@@ -110,13 +136,39 @@ namespace MustHaveUtils.Extensions
             }
         }
 
+        /// <summary>
+        /// Transforms the string into the next permutation from the set of all permutations that are lexicographically ordered with respect to operator or comp. 
+        /// Returns true if such permutation exists, otherwise transforms the range into the first permutation and returns false.
+        /// </summary>
+        /// <param name="str">String to permutate</param>
+        /// <param name="start">Start element's index to permute</param>
+        /// <returns>
+        /// true if the new permutation is lexicographically greater than the old. 
+        /// false if the last permutation was reached and the range was reset to the first permutation.
+        /// </returns>
         public static bool NextPermutation(this string str, int start)
         {
+            if (string.IsNullOrEmpty(str))
+                return false;
+
             return NextPermutation(str, start, str.Length - 1);
         }
 
+
+        /// <summary>
+        /// Transforms the string into the next permutation from the set of all permutations that are lexicographically ordered with respect to operator or comp. 
+        /// Returns true if such permutation exists, otherwise transforms the range into the first permutation and returns false.
+        /// </summary>
+        /// <param name="str">String to permutate</param>
+        /// <returns>
+        /// true if the new permutation is lexicographically greater than the old. 
+        /// false if the last permutation was reached and the range was reset to the first permutation.
+        /// </returns>
         public static bool NextPermutation(this string str)
         {
+            if (string.IsNullOrEmpty(str))
+                return false;
+
             return NextPermutation(str, 0, str.Length - 1);
         }
 
