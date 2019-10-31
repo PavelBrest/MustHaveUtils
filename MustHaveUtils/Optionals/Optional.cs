@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
+#nullable enable
 namespace MustHaveUtils
 {
     public abstract class Optional
@@ -23,59 +25,57 @@ namespace MustHaveUtils
             _value :
             throw new InvalidOperationException();
 
-        internal Optional()
-        {
-            _value = default;
-            HasValue = false;
-        }
+        internal Optional() => 
+            (_value, HasValue) = (default!, false);
 
-        internal Optional(TValue value)
-        {
-            _value = value;
-            HasValue = true;
-        }
+        internal Optional(TValue value) =>
+            (_value, HasValue) = (value, true);
 
-        public void IfPresent(Action<TValue> action)
+        public void IfPresent([NotNull] Action<TValue> action)
         {
+            if (action == null) throw new ArgumentNullException(nameof(action));
+
             if (HasValue)
-                action?.Invoke(_value);
+                action.Invoke(_value);
         }
 
-        public TValue OrElseGet(Func<TValue> action)
-            => HasValue ? _value : action.Invoke();
+        public TValue OrElseGet([NotNull] Func<TValue> action)
+        {
+            if (action == null) throw new ArgumentNullException(nameof(action));
+
+            return HasValue ? 
+                _value : 
+                action.Invoke();
+        }
 
         public TValue OrElse(TValue value)
             => HasValue ? _value : value;
 
-        public Optional<TValue> Where(Func<TValue, bool> predicate)
+        public Optional<TValue> Where([NotNull] Func<TValue, bool> predicate)
         {
-            if (predicate == null)
-                throw new ArgumentNullException(nameof(predicate));
+            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
 
-            if (!HasValue)
-                return this;
-
-            return predicate.Invoke(_value) ? this : Empty<TValue>();
+            return !HasValue || predicate.Invoke(_value) ?
+                this :
+                Empty<TValue>();
         }
 
-        public Optional<UValue> Map<UValue>(Func<TValue, UValue> func)
-            => HasValue ?
+        public Optional<T> Map<T>([NotNull] Func<TValue, T> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+
+            return HasValue ?
                 OfNullable(func.Invoke(_value)) :
-                Empty<UValue>();
+                Empty<T>();
+        }
 
         public static explicit operator TValue(Optional<TValue> optional)
             => optional.GetValue;
 
         public static explicit operator Optional<TValue>(TValue value)
-            => new Optional<TValue>(value);
+            => Optional.Of(value);
 
-        public static bool operator ==(Optional<TValue> first, Optional<TValue> second) 
-            => first.Equals(second);
-
-        public static bool operator !=(Optional<TValue> first, Optional<TValue> second) 
-            => first.Equals(second);
-
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is Optional<TValue>)
                 return Equals(obj);
@@ -90,10 +90,12 @@ namespace MustHaveUtils
 
         public bool Equals(Optional<TValue> other)
         {
-            if (HasValue && other.HasValue)
-                return Equals(_value, other.GetValue);
-            else
-                return HasValue == other.HasValue;
+            if (other == null)
+                return false;
+
+            return HasValue && other.HasValue ?
+                Equals(_value, other.GetValue) :
+                HasValue == other.HasValue;
         }
     }
 }

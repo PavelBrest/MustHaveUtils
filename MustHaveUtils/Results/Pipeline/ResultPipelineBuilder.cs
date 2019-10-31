@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,36 +27,31 @@ namespace MustHaveUtils.Results.Pipeline
             _failedContinueDictionary.ContainsKey(_funcList.Last()) || 
             _failedDictionary.ContainsKey(_funcList.Last());
 
-        public ResultPipelineBuilder ContinueWith(Func<Result> func)
+        public ResultPipelineBuilder ContinueWith([NotNull] Func<Result> func)
         {
-            if (func == null)
-                throw new ArgumentNullException(nameof(func));
+            if (func == null) throw new ArgumentNullException(nameof(func));
 
             _funcList.AddLast(func);
 
             return this;
         }
 
-        public ResultPipelineBuilder ContinueOnFalied(Func<Result> func)
+        public ResultPipelineBuilder ContinueOnFalied([NotNull] Func<Result> func)
         {
-            if (func == null)
-                throw new ArgumentNullException(nameof(func));
+            if (func == null) throw new ArgumentNullException(nameof(func));
 
-            if (!CanAddToPipeline)
-                throw new InvalidOperationException();
+            if (!CanAddToPipeline) throw new InvalidOperationException();
 
             _failedContinueDictionary.Add(_funcList.Last(), func);
 
             return this;
         }
 
-        public ResultPipelineBuilder OnFailed(Action<string> action)
+        public ResultPipelineBuilder OnFailed([NotNull] Action<string> action)
         {
-            if (action == null)
-                throw new ArgumentNullException(nameof(action));
+            if (action == null) throw new ArgumentNullException(nameof(action));
 
-            if (!CanAddToPipeline)
-                throw new InvalidOperationException();
+            if (!CanAddToPipeline) throw new InvalidOperationException();
 
             _failedDictionary.Add(_funcList.Last(), action);
 
@@ -65,8 +61,7 @@ namespace MustHaveUtils.Results.Pipeline
         public ResultPipelineBuilder ThrowOnFailed<TException>()
             where TException : Exception, new()
         {
-            if (!CanAddToPipeline)
-                throw new InvalidOperationException();
+            if (!CanAddToPipeline) throw new InvalidOperationException();
 
             _failedDictionary.Add(_funcList.Last(), _ => throw new TException());
 
@@ -109,14 +104,9 @@ namespace MustHaveUtils.Results.Pipeline
         }
 
         public Task<Result> ExecuteAsync(CancellationToken token = default)
-        {
-            return Task.Factory.StartNew(Execute, token, TaskCreationOptions.None, TaskScheduler.Default);
+            => Task.Factory.StartNew(Execute, token, TaskCreationOptions.None, TaskScheduler.Default);
 
-        }
-
-        public Task<Result<TValue>> ExecuteAsync<TValue>(CancellationToken token = default)
-        {
-            return Task.Factory.StartNew(Execute<TValue>, token, TaskCreationOptions.None, TaskScheduler.Default);
-        }
+        public Task<Result<TValue>> ExecuteAsync<TValue>(CancellationToken token = default) 
+            => Task.Factory.StartNew(Execute<TValue>, token, TaskCreationOptions.None, TaskScheduler.Default);
     }
 }
