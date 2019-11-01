@@ -29,7 +29,7 @@ namespace MustHaveUtils
             (_value, HasValue) = (default!, false);
 
         internal Optional(TValue value) =>
-            (_value, HasValue) = (value, true);
+            (_value, HasValue) = (value ?? throw new ArgumentNullException(nameof(value)), true);
 
         public void IfPresent([NotNull] Action<TValue> action)
         {

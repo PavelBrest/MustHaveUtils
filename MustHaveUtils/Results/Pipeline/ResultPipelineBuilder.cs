@@ -14,7 +14,6 @@ namespace MustHaveUtils.Results.Pipeline
         private readonly Dictionary<Func<Result>, Action<string>> _failedDictionary;
         private readonly Dictionary<Func<Result>, Func<Result>> _failedContinueDictionary;
 
-
         public ResultPipelineBuilder()
         {
             _funcList = new LinkedList<Func<Result>>();
@@ -82,7 +81,10 @@ namespace MustHaveUtils.Results.Pipeline
                 if (_failedDictionary.TryGetValue(func, out var action))
                     action.Invoke(result.Message);
                 else if (_failedContinueDictionary.TryGetValue(func, out var function))
+                {
                     result = function.Invoke();
+                    continue;
+                }
 
                 return result;
             }
