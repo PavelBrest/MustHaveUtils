@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,27 +8,41 @@ namespace MustHaveUtils.Results.Pipeline
 
     public sealed class ResultPipelineBuilder
     {
-        private readonly LinkedList<Func<Result>> _funcList;
-        private readonly Dictionary<Func<Result>, Action<string>> _failedDictionary;
-        private readonly Dictionary<Func<Result>, Func<Result>> _failedContinueDictionary;
-
-        public ResultPipelineBuilder()
-        {
-            _funcList = new LinkedList<Func<Result>>();
-            _failedDictionary = new Dictionary<Func<Result>, Action<string>>();
-            _failedContinueDictionary = new Dictionary<Func<Result>, Func<Result>>();
-        }
-
-        private bool CanAddToPipeline 
-            => _funcList.Any() || 
-            _failedContinueDictionary.ContainsKey(_funcList.Last()) || 
-            _failedDictionary.ContainsKey(_funcList.Last());
+        private IPipelineStep _firstStep;
+        private IPipelineStep _last;
 
         public ResultPipelineBuilder ContinueWith([NotNull] Func<Result> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
 
-            _funcList.AddLast(func);
+            var step = new PiplelineStep(func);
+
+            if (_firstStep == null)
+            {
+                _firstStep = step;
+            }
+            else 
+                _last.Next = step;
+
+            _last = step;
+
+            return this;
+        }
+
+        public ResultPipelineBuilder ContinueWithAsync([NotNull] Func<Task<Result>> func, bool configureAwait = false)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+
+            var step = new PipelineStepAsync(func, configureAwait);
+
+            if (_firstStep == null)
+            {
+                _firstStep = step;
+            }
+            else
+                _last.Next = step;
+
+            _last = step;
 
             return this;
         }
@@ -39,20 +51,19 @@ namespace MustHaveUtils.Results.Pipeline
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
 
-            if (!CanAddToPipeline) throw new InvalidOperationException();
+            if (_last == null) throw new InvalidOperationException();
 
-            _failedContinueDictionary.Add(_funcList.Last(), func);
+            _last.ContinueOnFailed = true;
+            _last.Next = new PiplelineStep(func);
 
             return this;
         }
 
         public ResultPipelineBuilder OnFailed([NotNull] Action<string> action)
         {
-            if (action == null) throw new ArgumentNullException(nameof(action));
+            if (_last == null || _last.ActionFailed != null) throw new InvalidOperationException();
 
-            if (!CanAddToPipeline) throw new InvalidOperationException();
-
-            _failedDictionary.Add(_funcList.Last(), action);
+            _last.ActionFailed = action ?? throw new ArgumentNullException(nameof(action));
 
             return this;
         }
@@ -60,33 +71,38 @@ namespace MustHaveUtils.Results.Pipeline
         public ResultPipelineBuilder ThrowOnFailed<TException>()
             where TException : Exception, new()
         {
-            if (!CanAddToPipeline) throw new InvalidOperationException();
+            if (_last == null || _last.ActionFailed != null) throw new InvalidOperationException();
 
-            _failedDictionary.Add(_funcList.Last(), _ => throw new TException());
+            _last.ActionFailed = _ => throw new TException();
 
             return this;
         }
 
         public Result Execute()
         {
+            IPipelineStep current = _firstStep;
             Result result = Result.Failed(string.Empty);
 
-            foreach(var func in _funcList)
+            while (current != null)
             {
-                result = func.Invoke();
+                if (current is IPipelineStepAsync asyncStep)
+                    result = asyncStep.Func.Invoke().GetAwaiter().GetResult();
+                else
+                    result = current.Func();
 
-                if (!result.IsFailed)
-                    continue;
-
-                if (_failedDictionary.TryGetValue(func, out var action))
-                    action.Invoke(result.Message);
-                else if (_failedContinueDictionary.TryGetValue(func, out var function))
+                if (result.IsFailed)
                 {
-                    result = function.Invoke();
-                    continue;
+                    if (current.ContinueOnFailed)
+                    {
+                        current = current.Next;
+                        continue;
+                    }
+
+                    current.ActionFailed?.Invoke(result.Message);
+                    return result;
                 }
 
-                return result;
+                current = current.Next;
             }
 
             return result;
@@ -105,10 +121,50 @@ namespace MustHaveUtils.Results.Pipeline
             return valueRes;
         }
 
-        public Task<Result> ExecuteAsync(CancellationToken token = default)
-            => Task.Factory.StartNew(Execute, token, TaskCreationOptions.None, TaskScheduler.Default);
+        public async Task<Result> ExecuteAsync(CancellationToken token = default)
+        {
+            IPipelineStep current = _firstStep;
+            Result result = Result.Failed(string.Empty);
 
-        public Task<Result<TValue>> ExecuteAsync<TValue>(CancellationToken token = default) 
-            => Task.Factory.StartNew(Execute<TValue>, token, TaskCreationOptions.None, TaskScheduler.Default);
+            while (current != null)
+            {
+                if (current is IPipelineStepAsync asyncStep)
+                {
+                    result = await asyncStep.Func()
+                        .ConfigureAwait(asyncStep.ConfigureAwait);
+                }
+                else 
+                    result = current.Func();
+
+                if (result.IsFailed)
+                {
+                    if (current.ContinueOnFailed)
+                    {
+                        current = current.Next;
+                        continue;
+                    }
+
+                    current.ActionFailed?.Invoke(result.Message);
+                    return result;
+                }
+
+                current = current.Next;
+            }
+
+            return result;
+        }
+
+        public async Task<Result<TValue>> ExecuteAsync<TValue>(CancellationToken token = default)
+        {
+            var result = await ExecuteAsync();
+
+            if (result.IsFailed)
+                return Result.Failed<TValue>(result.Message, default);
+
+            if (!(result is Result<TValue> valueRes))
+                throw new InvalidOperationException();
+
+            return valueRes;
+        }
     }
 }
