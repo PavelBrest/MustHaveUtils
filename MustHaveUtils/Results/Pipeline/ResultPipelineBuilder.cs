@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 
 namespace MustHaveUtils.Results.Pipeline
 {
-
     public sealed class ResultPipelineBuilder
     {
         private IPipelineStep _firstStep;
@@ -112,9 +111,6 @@ namespace MustHaveUtils.Results.Pipeline
         {
             var result = Execute();
 
-            if (result.IsFailed)
-                return Result.Failed<TValue>(result.Message, default);
-
             if (!(result is Result<TValue> valueRes))
                 throw new InvalidOperationException();
 
@@ -157,9 +153,6 @@ namespace MustHaveUtils.Results.Pipeline
         public async Task<Result<TValue>> ExecuteAsync<TValue>(CancellationToken token = default)
         {
             var result = await ExecuteAsync();
-
-            if (result.IsFailed)
-                return Result.Failed<TValue>(result.Message, default);
 
             if (!(result is Result<TValue> valueRes))
                 throw new InvalidOperationException();
