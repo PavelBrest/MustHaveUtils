@@ -11,7 +11,7 @@ namespace MustHaveUtils.Extensions.String
         /// </summary>
         /// <param name="str">String for rotate.</param>
         /// <param name="from">The element's index that should appear at the beginning of the rotated range</param>
-        public unsafe static void Rotate(this string str, int from)
+        public static unsafe void Rotate(this string str, int from)
         {
             if (string.IsNullOrEmpty(str))
                 throw new NullReferenceException();
@@ -26,7 +26,7 @@ namespace MustHaveUtils.Extensions.String
         }
 
 
-        public unsafe static bool PrevPermutation(this string str, int start, int end)
+        public static unsafe bool PrevPermutation(this string str, int start, int end)
         {
             if (string.IsNullOrEmpty(str))
                 return false;
@@ -52,35 +52,28 @@ namespace MustHaveUtils.Extensions.String
                     {
                         i2 = last + 1;
                         while (!(*--i2 < *i))
-                            ;
+                        { }
+
                         PtrHelper.SwapIter(ref i, ref i2);
                         PtrHelper.ReverseIter(i1, last);
                         return true;
                     }
-                    if (i == first)
-                    {
-                        PtrHelper.ReverseIter(first, last);
-                        return false;
-                    }
+
+                    if (i != first) continue;
+                    
+                    PtrHelper.ReverseIter(first, last);
+                    return false;
                 }
             }
         }
 
-        public static bool PrevPermutation(this string str, int start)
-        {
-            if (string.IsNullOrEmpty(str))
-                return false;
+        public static bool PrevPermutation(this string str, int start) 
+            => !string.IsNullOrEmpty(str) && 
+               PrevPermutation(str, start, str.Length - 1);
 
-            return PrevPermutation(str, start, str.Length - 1);
-        }
-
-        public static bool PrevPermutation(this string str)
-        {
-            if (string.IsNullOrEmpty(str))
-                return false;
-
-            return PrevPermutation(str, 0, str.Length - 1);
-        }
+        public static bool PrevPermutation(this string str) 
+            => !string.IsNullOrEmpty(str) && 
+               PrevPermutation(str, 0, str.Length - 1);
 
         /// <summary>
         /// Transforms the string into the next permutation from the set of all permutations that are lexicographically ordered with respect to operator or comp. 
@@ -119,19 +112,19 @@ namespace MustHaveUtils.Extensions.String
                     {
                         i2 = last + 1;
                         while (!(*i < *--i2))
-                            ;
+                        { }
 
                         PtrHelper.SwapIter(ref i, ref i2);
                         PtrHelper.ReverseIter(i1, last);
 
                         return true;
                     }
-                    if (i == first)
-                    {
-                        PtrHelper.ReverseIter(first, last);
 
-                        return false;
-                    }
+                    if (i != first) continue;
+                    
+                    PtrHelper.ReverseIter(first, last);
+
+                    return false;
                 }
             }
         }
@@ -146,13 +139,9 @@ namespace MustHaveUtils.Extensions.String
         /// true if the new permutation is lexicographically greater than the old. 
         /// false if the last permutation was reached and the range was reset to the first permutation.
         /// </returns>
-        public static bool NextPermutation(this string str, int start)
-        {
-            if (string.IsNullOrEmpty(str))
-                return false;
-
-            return NextPermutation(str, start, str.Length - 1);
-        }
+        public static bool NextPermutation(this string str, int start) 
+            => !string.IsNullOrEmpty(str) && 
+               NextPermutation(str, start, str.Length - 1);
 
 
         /// <summary>
@@ -164,17 +153,13 @@ namespace MustHaveUtils.Extensions.String
         /// true if the new permutation is lexicographically greater than the old. 
         /// false if the last permutation was reached and the range was reset to the first permutation.
         /// </returns>
-        public static bool NextPermutation(this string str)
-        {
-            if (string.IsNullOrEmpty(str))
-                return false;
-
-            return NextPermutation(str, 0, str.Length - 1);
-        }
+        public static bool NextPermutation(this string str) 
+            => !string.IsNullOrEmpty(str) && 
+               NextPermutation(str, 0, str.Length - 1);
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe static char* Rotate(ref char* first, ref char* from, ref char* last)
+        private static unsafe char* Rotate(ref char* first, ref char* from, ref char* last)
         {
             if (first == from) return last;
             if (from == last) return first;

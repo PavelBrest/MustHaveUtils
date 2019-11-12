@@ -10,7 +10,7 @@ namespace MustHaveUtils.Extensions.Array
         /// Transforms the range into the previous permutation from the set of all permutations that are lexicographically ordered with respect to IComparable. 
         /// Returns true if such permutation exists, otherwise transforms the range into the last permutation and returns false.
         /// </summary>
-        /// <typeparam name="T">T must meet implement IComparable<T></typeparam>
+        /// <typeparam name="T">T must meet implement IComparable</typeparam>
         /// <returns>
         /// true if the new permutation precedes the old in lexicographical order. 
         /// false if the first permutation was reached and the range was reset to the last permutation.
@@ -27,7 +27,7 @@ namespace MustHaveUtils.Extensions.Array
         /// Transforms the range into the previous permutation from the set of all permutations that are lexicographically ordered with respect to IComparable. 
         /// Returns true if such permutation exists, otherwise transforms the range into the last permutation and returns false.
         /// </summary>
-        /// <typeparam name="T">T must meet implement IComparable<T></typeparam>
+        /// <typeparam name="T">T must meet implement IComparable</typeparam>
         /// <returns>
         /// true if the new permutation precedes the old in lexicographical order. 
         /// false if the first permutation was reached and the range was reset to the last permutation.
@@ -44,7 +44,7 @@ namespace MustHaveUtils.Extensions.Array
         /// Transforms the range into the previous permutation from the set of all permutations that are lexicographically ordered with respect to IComparable. 
         /// Returns true if such permutation exists, otherwise transforms the range into the last permutation and returns false.
         /// </summary>
-        /// <typeparam name="T">T must meet implement IComparable<T></typeparam>
+        /// <typeparam name="T">T must meet implement IComparable</typeparam>
         /// <returns>
         /// true if the new permutation precedes the old in lexicographical order. 
         /// false if the first permutation was reached and the range was reset to the last permutation.
@@ -77,19 +77,19 @@ namespace MustHaveUtils.Extensions.Array
                 {
                     i2 = last + 1;
                     while (!(span[--i2].CompareTo(span[i]) < 0))
-                        ;
+                    { }
 
                     SpanHelper.Swap(ref span, ref i, ref i2);
-                    MemoryExtensions.Reverse(span.Slice(i1, last - i1 + 1));
+                    span.Slice(i1, last - i1 + 1).Reverse();
 
                     return true;
                 }
-                if (i == first)
-                {
-                    MemoryExtensions.Reverse(span.Slice(first, last - first + 1));
 
-                    return false;
-                }
+                if (i != first) continue;
+                
+                span.Slice(first, last - first + 1).Reverse();
+
+                return false;
             }
         }
 
@@ -97,7 +97,7 @@ namespace MustHaveUtils.Extensions.Array
         /// Transforms the range into the next permutation from the set of all permutations that are lexicographically ordered with respect to operator IComparable. 
         /// Returns true if such permutation exists, otherwise transforms the range into the first permutation and returns false.
         /// </summary>
-        /// <typeparam name="T">T must meet implement IComparable<T></typeparam>
+        /// <typeparam name="T">T must meet implement IComparable</typeparam>
         /// <returns>
         /// true if the new permutation is lexicographically greater than the old. 
         /// false if the last permutation was reached and the range was reset to the first permutation.
@@ -114,7 +114,7 @@ namespace MustHaveUtils.Extensions.Array
         /// Transforms the range into the next permutation from the set of all permutations that are lexicographically ordered with respect to operator IComparable. 
         /// Returns true if such permutation exists, otherwise transforms the range into the first permutation and returns false.
         /// </summary>
-        /// <typeparam name="T">T must meet implement IComparable<T></typeparam>
+        /// <typeparam name="T">T must meet implement IComparable</typeparam>
         /// <returns>
         /// true if the new permutation is lexicographically greater than the old. 
         /// false if the last permutation was reached and the range was reset to the first permutation.
@@ -131,7 +131,7 @@ namespace MustHaveUtils.Extensions.Array
         /// Transforms the range into the next permutation from the set of all permutations that are lexicographically ordered with respect to operator IComparable. 
         /// Returns true if such permutation exists, otherwise transforms the range into the first permutation and returns false.
         /// </summary>
-        /// <typeparam name="T">T must meet implement IComparable<T></typeparam>
+        /// <typeparam name="T">T must meet implement IComparable</typeparam>
         /// <returns>
         /// true if the new permutation is lexicographically greater than the old. 
         /// false if the last permutation was reached and the range was reset to the first permutation.
@@ -165,19 +165,19 @@ namespace MustHaveUtils.Extensions.Array
                 {
                     i2 = last + 1;
                     while (!(span[i].CompareTo(span[--i2]) < 0))
-                        ;
+                    { }
 
                     SpanHelper.Swap(ref span, ref i, ref i2);
-                    MemoryExtensions.Reverse(span.Slice(i1, last - i1 + 1));
+                    span.Slice(i1, last - i1 + 1).Reverse();
 
                     return true;
                 }
-                if (i == first)
-                {
-                    MemoryExtensions.Reverse(span.Slice(first, last - first + 1));
 
-                    return false;
-                }
+                if (i != first) continue;
+                
+                span.Slice(first, last - first + 1).Reverse();
+
+                return false;
             }
         }
     }

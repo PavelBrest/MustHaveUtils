@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MustHaveUtils.Results.Pipeline
+namespace MustHaveUtils.Results.Pipeline.Abstractions
 {
     interface IPipelineStep
     {

@@ -13,7 +13,7 @@ namespace MustHaveUtils.Tasks
         private readonly LinkedList<Task> _tasks = new LinkedList<Task>();
         private readonly int _maxDegreeOfParallelism;
 
-        private int _delegatesQueuedOrRunning = 0;
+        private int _delegatesQueuedOrRunning;
 
         public LimitedConcurrencyLevelTaskScheduler(int maxDegreeOfParallelism)
         {
@@ -23,7 +23,7 @@ namespace MustHaveUtils.Tasks
             _maxDegreeOfParallelism = maxDegreeOfParallelism;
         }
 
-        public sealed override int MaximumConcurrencyLevel { get { return _maxDegreeOfParallelism; } }
+        public sealed override int MaximumConcurrencyLevel => _maxDegreeOfParallelism;
 
         protected sealed override IEnumerable<Task> GetScheduledTasks()
         {
@@ -63,11 +63,7 @@ namespace MustHaveUtils.Tasks
                 return false;
 
             if (taskWasPreviouslyQueued)
-            {
-                return TryDequeue(task) ?
-                    base.TryExecuteTask(task) :
-                    false;
-            }
+                return TryDequeue(task) && base.TryExecuteTask(task);
 
             return base.TryExecuteTask(task);
         }

@@ -77,10 +77,7 @@ namespace MustHaveUtils
 
         public override bool Equals(object? obj)
         {
-            if (obj is Optional<TValue>)
-                return Equals(obj);
-            else
-                return false;
+            return obj is Optional<TValue> && Equals(obj);
         }
 
         public override int GetHashCode()

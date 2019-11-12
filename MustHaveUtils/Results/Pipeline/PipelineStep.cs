@@ -1,12 +1,13 @@
 ﻿using System;
+using MustHaveUtils.Results.Pipeline.Abstractions;
 
 namespace MustHaveUtils.Results.Pipeline
 {
-    class PiplelineStep : IPipelineStep
+    class PipelineStep : IPipelineStep
     {
-        protected PiplelineStep() { }
+        protected PipelineStep() { }
 
-        public PiplelineStep(Func<Result> func)
+        public PipelineStep(Func<Result> func)
         {
             Func = func;
         }

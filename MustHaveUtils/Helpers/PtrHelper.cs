@@ -2,7 +2,7 @@
 
 namespace MustHaveUtils.Helpers
 {
-    internal unsafe static class PtrHelper
+    internal static unsafe class PtrHelper
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SwapIter(ref char* first, ref char* second)

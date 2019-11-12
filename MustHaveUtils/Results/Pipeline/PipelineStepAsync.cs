@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using MustHaveUtils.Results.Pipeline.Abstractions;
 
 namespace MustHaveUtils.Results.Pipeline
 {
@@ -19,6 +20,6 @@ namespace MustHaveUtils.Results.Pipeline
         public Func<Task<Result>> Func { get; }
         public Action<string> ActionFailed { get; set; }
 
-        Func<Result> IPipelineStep.Func { get => throw new InvalidOperationException(); }
+        Func<Result> IPipelineStep.Func => () => Func.Invoke().GetAwaiter().GetResult();
     }
 }

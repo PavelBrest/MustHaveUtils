@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
+using MustHaveUtils.Results.Pipeline.Abstractions;
 
 namespace MustHaveUtils.Results.Pipeline
 {
@@ -14,12 +15,10 @@ namespace MustHaveUtils.Results.Pipeline
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
 
-            var step = new PiplelineStep(func);
+            var step = new PipelineStep(func);
 
             if (_firstStep == null)
-            {
                 _firstStep = step;
-            }
             else 
                 _last.Next = step;
 
@@ -35,9 +34,7 @@ namespace MustHaveUtils.Results.Pipeline
             var step = new PipelineStepAsync(func, configureAwait);
 
             if (_firstStep == null)
-            {
                 _firstStep = step;
-            }
             else
                 _last.Next = step;
 
@@ -46,14 +43,14 @@ namespace MustHaveUtils.Results.Pipeline
             return this;
         }
 
-        public ResultPipelineBuilder ContinueOnFalied([NotNull] Func<Result> func)
+        public ResultPipelineBuilder ContinueOnFailed([NotNull] Func<Result> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
 
             if (_last == null) throw new InvalidOperationException();
 
             _last.ContinueOnFailed = true;
-            _last.Next = new PiplelineStep(func);
+            _last.Next = new PipelineStep(func);
 
             return this;
         }
@@ -84,10 +81,7 @@ namespace MustHaveUtils.Results.Pipeline
 
             while (current != null)
             {
-                if (current is IPipelineStepAsync asyncStep)
-                    result = asyncStep.Func.Invoke().GetAwaiter().GetResult();
-                else
-                    result = current.Func();
+                result = current.Func();
 
                 if (result.IsFailed)
                 {
@@ -150,14 +144,14 @@ namespace MustHaveUtils.Results.Pipeline
             return result;
         }
 
-        public async Task<Result<TValue>> ExecuteAsync<TValue>(CancellationToken token = default)
-        {
-            var result = await ExecuteAsync();
+        public Task<Result<TValue>> ExecuteAsync<TValue>(CancellationToken token = default) 
+            => ExecuteAsync(token)
+                .ContinueWith(res =>
+                {
+                    if (!(res.Result is Result<TValue> valueRes))
+                        throw new InvalidOperationException();
 
-            if (!(result is Result<TValue> valueRes))
-                throw new InvalidOperationException();
-
-            return valueRes;
-        }
+                    return valueRes;
+                }, token, TaskContinuationOptions.None, TaskScheduler.Current);
     }
 }
