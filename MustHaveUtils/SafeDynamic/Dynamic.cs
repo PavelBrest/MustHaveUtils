@@ -40,7 +40,7 @@ namespace MustHaveUtils.SafeDynamic
             if (CurrentType == null || !_types.TryGetValue(typeof(T), out _) || !_value.GetType().Equals(typeof(T)))
                 return false;
             
-            val = _value;
+            val = (T)_value;
             return true;
         }
         
