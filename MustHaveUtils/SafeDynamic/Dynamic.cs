@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace MustHaveUtils.SafeDynamic
 {
     public class Dynamic
     {
-        private dynamic _value;
+        private object _value;
+        private MethodInfo[] _currentMethods;
         private readonly HashSet<Type> _types;
 
         private Dynamic(HashSet<Type> types)
@@ -14,14 +16,24 @@ namespace MustHaveUtils.SafeDynamic
             _types = types;
         }
 
-        public Type CurrentType => _value?.GetType();
-
+        public object Value
+        {
+            get => _value;
+            set
+            {
+                _value = value;
+                CurrentType = value.GetType();
+                _currentMethods = CurrentType.GetMethods();
+            }
+        }
+        public Type CurrentType { get; private set; }
+        
         public void Set<T>(T value)
         {
             if (!_types.TryGetValue(value.GetType(), out _))
                 throw new InvalidOperationException($"Type {value.GetType().FullName} is missing.");
 
-            _value = value;
+            Value = value;
         }
 
         public bool TrySet<T>(T value)
@@ -29,34 +41,36 @@ namespace MustHaveUtils.SafeDynamic
             if (!_types.TryGetValue(value.GetType(), out _))
                 return false;
 
-            _value = value;
+            Value = value;
             return true;
         }
         
-        public bool TryGet<T>(out T val)
+        public Optional<T> TryGet<T>()
         {
-            val = default;
+            if (_value == null || !_types.TryGetValue(typeof(T), out _) || CurrentType != typeof(T))
+                return Optional.Empty<T>();
             
-            if (CurrentType == null || !_types.TryGetValue(typeof(T), out _) || !_value.GetType().Equals(typeof(T)))
-                return false;
-            
-            val = (T)_value;
-            return true;
+            return Optional.Of((T)_value);
         }
         
         public T Get<T>()
         {
-            if (CurrentType == null)
+            if (_value == null)
                 throw new InvalidOperationException("Value not set yet.");
                 
             if (!_types.TryGetValue(typeof(T), out _))
                 throw new InvalidOperationException($"Type {typeof(T).FullName} is missing.");
             
-            if (!_value.GetType().Equals(typeof(T)))
+            if (CurrentType != typeof(T))
                 throw new InvalidOperationException($"Current type is {CurrentType.FullName}.");
             
-            return _value;
+            return (T)_value;
         }
+
+        public static Dynamic Create<T, T1, T2, T3>() => Create(typeof(T), typeof(T1), typeof(T2), typeof(T3));
+        public static Dynamic Create<T, T1, T2>() => Create(typeof(T), typeof(T1), typeof(T2));
+        public static Dynamic Create<T, T1>() => Create(typeof(T), typeof(T1));
+        public static Dynamic Create<T>() => Create(typeof(T));
 
         public static Dynamic Create(params Type[] types)
         {
